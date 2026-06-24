@@ -107,8 +107,8 @@ else:
 # Banner de bienvenida personalizado
 st.markdown(f'''
     <div style="background-color: rgba(0, 163, 224, 0.1); border-left: 4px solid #00A3E0; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-        <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor! Bienvenido a tu Torre de Control.</h3>
-        <p style="color: #8892B0; margin: 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Sr. Data Analyst) concedidos. Sistemas de telemetría en línea.</p>
+        <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor! Bienvenido.</h3>
+        <p style="color: #8892B0; margin: 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Data Analyst) concedidos.</p>
     </div>
 ''', unsafe_allow_html=True)
 
