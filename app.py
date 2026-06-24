@@ -92,56 +92,7 @@ prob_quiebre = np.mean(inv_final < 0) * 100
 faltante_avg = np.mean(np.abs(inv_final[inv_final < 0])) if prob_quiebre > 0 else 0
 ev_perdida = (prob_quiebre / 100) * faltante_avg * costo_caja
 
-# ==========================================
-# 5. HEADER Y KPIs PRINCIPALES
-# ==========================================
-# Lógica de saludo dinámico y hora de acceso (Ajustado a CST)
-tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
-hora_actual = tiempo_servidor.hour
-
-if 5 <= hora_actual < 12:
-    saludo = "Buenos días"
-elif 12 <= hora_actual < 19:
-    saludo = "Buenas tardes"
-else:
-    saludo = "Buenas noches"
-
-hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
-fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
-
-# Banner Unificado (Logo corporativo estable y Título Institucional)
-st.markdown(f'''
-    <div style="background: linear-gradient(135deg, #002F6C 0%, #0a192f 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #112240; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        <div style="display: flex; align-items: center; gap: 25px;">
-            <div style="background-color: white; padding: 5px; border-radius: 50%; height: 85px; width: 85px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4); overflow: hidden;">
-                <img src="https://logo.clearbit.com/pepsico.com" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
-            </div>
-            <div>
-                <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">PepsiCo <span style="color: #00A3E0;">SCM Intelligence</span></h1>
-                <p style="color: #64FFDA; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 500;">¡{saludo}, Víctor! | Sr. Data Analyst</p>
-            </div>
-        </div>
-        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 25px;">
-            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Registro de Acceso</p>
-            <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 1.2rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
-            <p style="color: #00A3E0; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{hora_formateada}</p>
-        </div>
-    </div>
-''', unsafe_allow_html=True)
-
-cols = st.columns(5)
-metrics = [
-    ("Stock Físico", f"{stock_actual:,} CX"),
-    ("Demanda Diaria", f"{demanda_media:,} CX"),
-    ("ROP Sugerido", f"{int(demanda_media * lead_time_total):,} CX"),
-    ("Riesgo (Stockout)", f"{prob_quiebre:.1f}%"),
-    ("Value at Risk (VaR)", f"${ev_perdida:,.0f}")
-]
-for col, (title, val) in zip(cols, metrics):
-    with col:
-        st.markdown(f'<div class="kpi-container"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
-
-st.write("<br>", unsafe_allow_html=True)
+https://www.pepsico.com.mx/images/mexicolibraries/homepage/pepsico-mexico-hero-home.jpg
 
 # ==========================================
 # 6. MÓDULOS DE ANÁLISIS (SÚPER TABS)
