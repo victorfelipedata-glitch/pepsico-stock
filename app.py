@@ -95,8 +95,10 @@ ev_perdida = (prob_quiebre / 100) * faltante_avg * costo_caja
 # ==========================================
 # 5. HEADER Y KPIs PRINCIPALES
 # ==========================================
-# Lógica de saludo dinámico según la hora local (Ajustado a CST)
-hora_actual = (datetime.utcnow() - timedelta(hours=6)).hour
+# Lógica de saludo dinámico y hora de acceso (Ajustado a CST)
+tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
+hora_actual = tiempo_servidor.hour
+
 if hora_actual < 12:
     saludo = "Buenos días"
 elif hora_actual < 19:
@@ -104,17 +106,28 @@ elif hora_actual < 19:
 else:
     saludo = "Buenas noches"
 
-# Banner de bienvenida personalizado
+hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
+fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
+
+# Banner Unificado (Logo, Título, Saludo y Hora en un solo bloque limpio)
 st.markdown(f'''
-    <div style="background-color: rgba(0, 163, 224, 0.1); border-left: 4px solid #00A3E0; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-        <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor! Bienvenido.</h3>
-        <p style="color: #8892B0; margin: 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Data Analyst) concedidos.</p>
+    <div style="background: linear-gradient(135deg, #002F6C 0%, #0a192f 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #112240; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <div style="background-color: white; padding: 12px; border-radius: 50px; height: 80px; width: 80px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4);">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/PepsiCo_logo.svg/512px-PepsiCo_logo.svg.png" style="width: 100%;">
+            </div>
+            <div>
+                <h1 style="color: #ffffff; margin: 0; font-size: 2.4rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">Control Tower <span style="color: #00A3E0;">v2.0</span></h1>
+                <p style="color: #64FFDA; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 500;">¡{saludo}, Víctor! | Sr. Data Analyst</p>
+            </div>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 25px;">
+            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Registro de Acceso</p>
+            <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 1.2rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
+            <p style="color: #00A3E0; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{hora_formateada}</p>
+        </div>
     </div>
 ''', unsafe_allow_html=True)
-
-# Título principal
-st.markdown('<h1 style="color: #ffffff; margin-bottom: 0px; margin-top: 10px;">&gt;_ PepsiCo Control Tower v2.0</h1>', unsafe_allow_html=True)
-st.markdown('<p style="color: #00A3E0; font-size: 1.1rem; margin-top: -10px;">Enterprise Supply Chain Intelligence Platform</p>', unsafe_allow_html=True)
 
 cols = st.columns(5)
 metrics = [
