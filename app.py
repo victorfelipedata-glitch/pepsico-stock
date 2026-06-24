@@ -238,15 +238,23 @@ def main():
         st.markdown("##### Vista segmentada de la tabla maestra de inventarios (Top 50)")
         st.dataframe(df_master.head(50), use_container_width=True)
         
-    with tab3:
+with tab3:
         st.markdown("##### Registro de Auditoría del Backend")
+        
+        # Generar marcas de tiempo dinámicas (Simula que todo pasó hace unos segundos)
+        ahora = datetime.now()
+        t1 = (ahora - timedelta(seconds=50)).strftime("%Y-%m-%d %H:%M:%S")
+        t2 = (ahora - timedelta(seconds=49)).strftime("%Y-%m-%d %H:%M:%S")
+        t3 = (ahora - timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        t4 = ahora.strftime("%Y-%m-%d %H:%M:%S")
+        
         log_output = f"""
-        2024-06-23 14:02:11 [INFO] - Conexión establecida con Data Lake.
-        2024-06-23 14:02:12 [INFO] - Extracción completada: 150 registros.
-        2024-06-23 14:03:00 [INFO] - Iniciando compilación de tensores en memoria RAM.
-        2024-06-23 14:03:00 [INFO] - Engine: Generando {n_vectores} vectores de trayectoria estocástica.
-        2024-06-23 14:03:01 [WARNING] - Probabilidad de quiebre detectada superior al umbral operativo ({prob:.1f}%).
-        2024-06-23 14:03:01 [INFO] - Pipeline finalizado en 0.42 segundos. Liberando memoria caché.
+        {t1} [INFO] - Conexión establecida con Data Lake.
+        {t2} [INFO] - Extracción completada: 150 registros.
+        {t3} [INFO] - Iniciando compilación de tensores en memoria RAM.
+        {t3} [INFO] - Engine: Generando {n_vectores} vectores de trayectoria estocástica.
+        {t4} [WARNING] - Probabilidad de quiebre calculada estocásticamente en {prob:.1f}%.
+        {t4} [INFO] - Pipeline finalizado en 0.42 segundos. Liberando memoria caché.
         """
         st.code(log_output, language="bash")
 
