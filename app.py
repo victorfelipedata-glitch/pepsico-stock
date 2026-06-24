@@ -2,203 +2,176 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import time
 
-# --- 1. CONFIGURACIÓN CORPORATIVA ---
+# --- 1. CONFIGURACIÓN CORPORATIVA (DARK MODE FORZADO) ---
 st.set_page_config(
-    page_title="Control Tower | PepsiCo Analytics",
+    page_title="PepsiCo Control Tower",
     page_icon="🌐",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Estilos CSS inyectados para lucir corporativo
+# Estilos para un Dark Mode vibrante y profesional
 st.markdown("""
     <style>
-    .main-header {font-size: 2.5rem; color: #002F6C; font-weight: 800; margin-bottom: 0px;}
-    .sub-header {font-size: 1.2rem; color: #00A3E0; font-weight: 600; margin-top: -10px; margin-bottom: 20px;}
-    .metric-card {background-color: #f8fafc; border-left: 5px solid #002F6C; padding: 15px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
+    .big-title {font-size: 2.8rem; color: #FFFFFF; font-weight: 900; margin-bottom: 0px; text-transform: uppercase; letter-spacing: 2px;}
+    .sub-title {font-size: 1.2rem; color: #00A3E0; font-weight: 400; margin-top: -10px; margin-bottom: 30px; letter-spacing: 1px;}
+    .highlight-red {color: #E31837; font-weight: bold;}
+    .highlight-blue {color: #00A3E0; font-weight: bold;}
+    div[data-testid="stMetricValue"] {font-size: 2rem; color: #FFFFFF;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. GENERACIÓN DE BASE DE DATOS MASIVA (Simulación de Data Lake) ---
+# --- 2. MOTOR DE DATOS MASIVO ---
 @st.cache_data
 def load_enterprise_data():
-    # Simulamos el tiempo de conexión a la nube de PepsiCo
-    time.sleep(1.5) 
-    
+    np.random.seed(42)
     categorias = {
-        "Botanas Saladas": [
-            "Sabritas Original 110g", "Doritos Nacho 146g", "Cheetos Torciditos 150g", "Ruffles Queso 120g",
-            "Tostitos Salsa Verde 240g", "Fritos Sal y Limón 110g", "Rancheritos 160g", "Crujitos 120g"
-        ],
-        "Bebidas": [
-            "Pepsi Black 600ml", "Pepsi Regular 2.5L", "Gatorade Naranja 1L", "Gatorade Moras 500ml",
-            "7Up 600ml", "Mirinda 600ml", "Epura 1L", "Lipton Ice Tea Durazno 600ml"
-        ],
-        "Galletas y Dulces": [
-            "Emperador Chocolate 101g", "Chokis Clásica 84g", "Marias Gamesa 170g", "Arcoiris 115g",
-            "Mamut Flipy 45g", "Surtido Rico 436g", "Florentinas Cajeta 83g", "Giro 114g"
-        ],
-        "Nutrición": [
-            "Avena Quaker 400g", "Barras Stila 120g", "Granola Quaker 350g", "Avena 3 Minutos 500g"
-        ]
+        "Botanas Saladas": ["Sabritas Original 110g", "Doritos Nacho 146g", "Cheetos Torciditos 150g", "Ruffles Queso 120g", "Tostitos Salsa Verde 240g", "Fritos Sal y Limón", "Rancheritos", "Crujitos"],
+        "Bebidas": ["Pepsi Black 600ml", "Pepsi Regular 2.5L", "Gatorade Naranja 1L", "Gatorade Moras 500ml", "7Up 600ml", "Mirinda 600ml"],
+        "Galletas": ["Emperador Chocolate 101g", "Chokis Clásica 84g", "Marias Gamesa 170g", "Arcoiris 115g", "Mamut Flipy 45g"]
     }
     
     datos = []
-    np.random.seed(10) # Para mantener consistencia en la demo
     for cat, prods in categorias.items():
         for prod in prods:
+            demanda = np.random.randint(100, 800)
             datos.append({
+                "SKU_ID": f"MX-{np.random.randint(10000, 99999)}",
                 "Categoría": cat,
-                "SKU_Name": prod,
-                "Demanda_Base": np.random.randint(50, 400),
-                "Costo_Unitario": np.random.uniform(15.0, 65.0),
-                "Margen_Venta_Multiplicador": np.random.uniform(15, 30) # Valor de penalización por quiebre
+                "Producto": prod,
+                "Demanda_Media_Diaria": demanda,
+                "Inventario_Actual": int(demanda * np.random.uniform(1.5, 4.5)),
+                "Valor_Unitario_MXN": np.random.uniform(18.0, 75.0),
+                "Lead_Time_Dias": np.random.randint(2, 6)
             })
     return pd.DataFrame(datos)
 
-df_productos = load_enterprise_data()
+df_db = load_enterprise_data()
 
-CEDIS = {
-    "CEDIS Vallejo (CDMX)": {"var": 1.25, "lead_time_base": 2},
-    "CEDIS Monterrey": {"var": 1.40, "lead_time_base": 3},
-    "CEDIS Guadalajara": {"var": 1.15, "lead_time_base": 2},
-    "CEDIS Tijuana": {"var": 1.60, "lead_time_base": 5},
-    "CEDIS Mérida": {"var": 1.10, "lead_time_base": 4},
-    "CEDIS Toluca": {"var": 0.95, "lead_time_base": 1}
-}
+# --- 3. SIDEBAR (PANEL DE CONTROL) ---
+with st.sidebar:
+    st.markdown("### 🎛️ PARÁMETROS DE RED")
+    cedis_sel = st.selectbox("📍 Nodo Logístico", ["CEDIS Vallejo (CDMX)", "CEDIS Monterrey", "CEDIS Guadalajara", "CEDIS Tijuana"])
+    
+    st.markdown("---")
+    cat_sel = st.selectbox("📂 Categoría de Negocio", df_db['Categoría'].unique())
+    df_cat = df_db[df_db['Categoría'] == cat_sel]
+    prod_sel = st.selectbox("📦 SKU Específico", df_cat['Producto'].tolist())
+    
+    st.markdown("---")
+    st.markdown("### ⚙️ ESTRÉS ESTOCÁSTICO")
+    retraso_simulado = st.slider("⚠️ Retraso Logístico (Días Extra)", 0, 7, 0)
+    volatilidad = st.slider("📈 Volatilidad de Demanda (%)", 0, 100, 20) / 100.0
+    n_sim = 10000 # Simulaciones pesadas fijas
 
-# --- 3. INTERFAZ DE USUARIO ---
-st.markdown('<p class="main-header">Control Tower: Predictive Supply Chain</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">Módulo de Prevención de Quiebres | Modelo Estocástico de Monte Carlo</p>', unsafe_allow_html=True)
+# --- 4. CÁLCULO CUANTITATIVO (EV+ y Riesgo) ---
+sku_data = df_cat[df_cat['Producto'] == prod_sel].iloc[0]
+demanda_lambda = sku_data['Demanda_Media_Diaria'] * (1 + volatilidad)
+lead_time_real = sku_data['Lead_Time_Dias'] + retraso_simulado
+inventario_inicio = sku_data['Inventario_Actual']
+valor_caja = sku_data['Valor_Unitario_MXN']
 
-# Simulador de carga de red
-with st.spinner('Conectando con Azure Data Lake (Pepsico Central)... extrayendo telemetría de CEDIS...'):
-    time.sleep(1)
+# Simulaciones vectorizadas
+demandas_matriz = np.random.poisson(lam=demanda_lambda, size=(n_sim, lead_time_real))
+consumo_total_ruta = np.sum(demandas_matriz, axis=1)
+inventario_final_sim = inventario_inicio - consumo_total_ruta
 
-# Sidebar corporativo
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/PepsiCo_logo.svg/512px-PepsiCo_logo.svg.png", width=150)
-st.sidebar.markdown("---")
-st.sidebar.header("🎯 Filtros de Operación")
+# Métricas de riesgo
+quiebres_bool = inventario_final_sim < 0
+prob_quiebre = np.mean(quiebres_bool) * 100
+cajas_perdidas = np.where(quiebres_bool, np.abs(inventario_final_sim), 0)
+ev_perdida = np.mean(cajas_perdidas) * valor_caja
+fill_rate = 100 - prob_quiebre
 
-cedis_sel = st.sidebar.selectbox("Planta / CEDIS", list(CEDIS.keys()))
-cat_sel = st.sidebar.selectbox("Categoría de Negocio", df_productos['Categoría'].unique())
+# --- 5. RENDERIZADO DEL DASHBOARD VIBRANTE ---
+st.markdown('<p class="big-title">Torre de Control Analítica</p>', unsafe_allow_html=True)
+st.markdown(f'<p class="sub-title">Monitoreo Predictivo Activo | {cedis_sel} | {time.strftime("%H:%M:%S")} CST</p>', unsafe_allow_html=True)
 
-# Filtrar productos por categoría
-df_filtrado = df_productos[df_productos['Categoría'] == cat_sel]
-prod_sel = st.sidebar.selectbox("SKU a Analizar", df_filtrado['SKU_Name'].tolist())
-
-st.sidebar.markdown("---")
-st.sidebar.header("⚙️ Parámetros de Simulación")
-inv_actual = st.sidebar.number_input("Stock Físico Actual (Cajas)", min_value=0, max_value=10000, value=850, step=50)
-retraso_logistico = st.sidebar.slider("Días de Retraso Extra (Tráfico/Clima)", min_value=0, max_value=5, value=0)
-n_simulaciones = st.sidebar.select_slider("Resolución de Simulación (Vectores)", options=[1000, 5000, 10000], value=5000)
-
-# --- 4. MOTOR MATEMÁTICO ---
-# Extraer datos del SKU
-datos_sku = df_filtrado[df_filtrado['SKU_Name'] == prod_sel].iloc[0]
-demanda_lambda = int(datos_sku['Demanda_Base'] * CEDIS[cedis_sel]['var'])
-costo_quiebre = datos_sku['Costo_Unitario'] * datos_sku['Margen_Venta_Multiplicador']
-lead_time_total = CEDIS[cedis_sel]['lead_time_base'] + retraso_logistico
-horizonte = lead_time_total + 5 # Simular días extra después del camión
-
-# Ejecución de Monte Carlo Vectorizada (¡Mucho más rápido y profesional!)
-np.random.seed(42)
-# Generamos todas las demandas diarias de una vez (Matriz: Simulaciones x Días)
-demandas_simuladas = np.random.poisson(lam=demanda_lambda, size=(n_simulaciones, horizonte))
-# Calculamos el inventario acumulado restando la suma acumulada de las demandas
-inventario_acumulado = inv_actual - np.cumsum(demandas_simuladas, axis=1)
-
-# Evaluar quiebres exactos durante el Lead Time
-# Cortamos la matriz hasta el día que llega el camión
-inventario_lead_time = inventario_acumulado[:, :lead_time_total]
-# Si el mínimo de la trayectoria es menor a 0, hubo quiebre
-quiebres_array = np.min(inventario_lead_time, axis=1) < 0
-
-prob_quiebre = (np.sum(quiebres_array) / n_simulaciones) * 100
-# Calcular cajas faltantes promedio solo en los escenarios donde hubo quiebre
-faltantes_escenarios = np.abs(np.minimum(inventario_lead_time[quiebres_array, -1], 0))
-promedio_cajas_faltantes = np.mean(faltantes_escenarios) if len(faltantes_escenarios) > 0 else 0
-riesgo_financiero = (prob_quiebre/100) * promedio_cajas_faltantes * costo_quiebre
-
-# --- 5. DASHBOARD DE ALTO IMPACTO ---
+# KPIs Principales
 col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.metric("Demanda Diaria Esperada", f"{demanda_lambda} cajas", f"Ajuste {CEDIS[cedis_sel]['var']}x")
-    st.markdown('</div>', unsafe_allow_html=True)
-with col2:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.metric("Punto de Reorden (ROP)", f"{demanda_lambda * lead_time_total} cajas", "Mínimo sugerido", delta_color="off")
-    st.markdown('</div>', unsafe_allow_html=True)
-with col3:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.metric("Probabilidad de Desabasto", f"{prob_quiebre:.1f}%", "Riesgo Crítico" if prob_quiebre > 20 else "Controlado", delta_color="inverse")
-    st.markdown('</div>', unsafe_allow_html=True)
-with col4:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.metric("Valor Monetario en Riesgo", f"${riesgo_financiero:,.0f} MXN", "Pérdida esperada de sell-out", delta_color="inverse")
-    st.markdown('</div>', unsafe_allow_html=True)
+col1.metric("Stock Físico (Cajas)", f"{inventario_inicio:,}", f"Lead Time: {lead_time_real} días")
+col2.metric("Punto de Reorden Sugerido", f"{int(demanda_lambda * lead_time_real):,}", "Basado en Volatilidad")
+col3.metric("Riesgo de Quiebre", f"{prob_quiebre:.1f}%", "-Crítico" if prob_quiebre > 15 else "Estable", delta_color="inverse")
+col4.metric("Valor Esperado Negativo (EV-)", f"- ${ev_perdida:,.2f} MXN", "Riesgo Financiero", delta_color="inverse")
 
-st.write("") # Espacio
+st.markdown("---")
 
-# Pestañas de Análisis (Muestra mucha robustez de desarrollo)
-tab1, tab2 = st.tabs(["📊 Visor Cuántico de Simulaciones (Monte Carlo)", "📋 Actionable Insights (Recomendaciones)"])
+# Pestañas de Análisis Profundo
+tab1, tab2, tab3 = st.tabs(["🔭 Análisis Estocástico Avanzado", "📊 Salud Logística de la Categoría", "💻 Terminal de Operaciones"])
+
+# COLORES VIBRANTES PARA GRÁFICOS
+color_pepsi_blue = '#005BB5'
+color_red_alert = '#E31837'
+color_neon_cyan = '#00F0FF'
 
 with tab1:
-    st.markdown("##### Trayectorias Estocásticas de Inventario")
-    st.write("Visualización de las distintas realidades posibles de consumo. La línea roja marca la llegada del transporte logístico.")
+    c1, c2 = st.columns([2, 1])
     
-    # Gráfica Premium con Plotly
-    fig = go.Figure()
-    
-    # Eje X
-    dias_eje = np.arange(1, horizonte + 1)
-    
-    # Dibujar 50 trayectorias grises para contexto visual
-    for i in range(50):
-        fig.add_trace(go.Scatter(x=dias_eje, y=inventario_acumulado[i, :], mode='lines', line=dict(color='rgba(150, 150, 150, 0.1)'), showlegend=False, hoverinfo='skip'))
-    
-    # Calcular y dibujar Percentiles P50 (Mediana), P10 (Pesimista), P90 (Optimista)
-    p50 = np.percentile(inventario_acumulado, 50, axis=0)
-    p10 = np.percentile(inventario_acumulado, 10, axis=0)
-    p90 = np.percentile(inventario_acumulado, 90, axis=0)
-    
-    fig.add_trace(go.Scatter(x=dias_eje, y=p90, mode='lines', line=dict(color='#00A3E0', width=2, dash='dash'), name='P90 (Demanda Lenta)'))
-    fig.add_trace(go.Scatter(x=dias_eje, y=p50, mode='lines', line=dict(color='#002F6C', width=4), name='Mediana Esperada'))
-    fig.add_trace(go.Scatter(x=dias_eje, y=p10, mode='lines', line=dict(color='#E31837', width=2, dash='dash'), name='P10 (Demanda Agresiva)'))
-    
-    # Línea de Quiebre (0)
-    fig.add_trace(go.Scatter(x=[1, horizonte], y=[0, 0], mode='lines', line=dict(color='black', width=1), name='Límite de Quiebre'))
-    
-    # Línea vertical de llegada del camión
-    fig.add_vline(x=lead_time_total, line_width=2, line_dash="dash", line_color="orange", annotation_text=f"Llegada de Camión (Día {lead_time_total})")
+    with c1:
+        # Gráfico 1: Trayectorias de Monte Carlo con Plotly
+        st.markdown("##### 📉 Simulación de Consumo vs Tiempo")
+        matriz_trayectorias = inventario_inicio - np.cumsum(demandas_matriz, axis=1)
+        fig_mc = go.Figure()
+        
+        # Dibujar 100 trayectorias aleatorias con color cyan transparente
+        dias_x = np.arange(1, lead_time_real + 1)
+        for i in range(100):
+            fig_mc.add_trace(go.Scatter(x=dias_x, y=matriz_trayectorias[i, :], mode='lines', line=dict(color=color_neon_cyan, width=1), opacity=0.05, hoverinfo='skip'))
+        
+        # Línea Mediana
+        p50 = np.percentile(matriz_trayectorias, 50, axis=0)
+        fig_mc.add_trace(go.Scatter(x=dias_x, y=p50, mode='lines+markers', name='Consumo Esperado (P50)', line=dict(color='#FFFFFF', width=3)))
+        
+        # Zona de Quiebre
+        fig_mc.add_hline(y=0, line_dash="dash", line_color=color_red_alert, annotation_text="ZONA DE QUIEBRE (STOCK OUT)", annotation_position="bottom right")
+        
+        fig_mc.update_layout(template="plotly_dark", height=400, margin=dict(l=0, r=0, t=30, b=0), showlegend=False, xaxis_title="Días hasta Resurtido", yaxis_title="Inventario Restante")
+        st.plotly_chart(fig_mc, use_container_width=True)
 
-    fig.update_layout(
-        height=450,
-        margin=dict(l=20, r=20, t=30, b=20),
-        plot_bgcolor='white',
-        xaxis=dict(title='Días Hacia el Futuro', showgrid=True, gridcolor='#e5e7eb'),
-        yaxis=dict(title='Cajas Físicas en CEDIS', showgrid=True, gridcolor='#e5e7eb'),
-        hovermode="x unified"
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    with c2:
+        # Gráfico 2: Distribución del Riesgo (Campana)
+        st.markdown("##### 🔔 Distribución de Inventario Final")
+        fig_dist = px.histogram(x=inventario_final_sim, nbins=50, color_discrete_sequence=[color_pepsi_blue])
+        fig_dist.add_vline(x=0, line_dash="solid", line_color=color_red_alert, line_width=3)
+        fig_dist.update_layout(template="plotly_dark", height=400, margin=dict(l=0, r=0, t=30, b=0), showlegend=False, xaxis_title="Cajas al llegar camión", yaxis_title="Frecuencia (Escenarios)")
+        st.plotly_chart(fig_dist, use_container_width=True)
 
 with tab2:
-    st.markdown("##### Motor de Decisión Automatizado")
+    st.markdown(f"##### 📋 Análisis de la categoría entera: {cat_sel}")
+    st.write("Visión integral de todos los SKUs para detectar vulnerabilidades cruzadas.")
     
-    if prob_quiebre > 15.0:
-        st.error(f"🚨 **ALERTA ROJA EN {cedis_sel.upper()}:** La probabilidad de desabasto para {prod_sel} es del **{prob_quiebre:.1f}%**.")
-        st.write("**Instrucciones al sistema ERP (SAP):**")
-        st.code(f"""
-        > GENERANDO ORDEN DE TRASLADO DE EMERGENCIA...
-        > DESTINO: {cedis_sel}
-        > MATERIAL: {prod_sel} (SKU ID: {np.random.randint(10000, 99999)})
-        > CANTIDAD SUGERIDA: {int(promedio_cajas_faltantes + (demanda_lambda*2))} cajas (Cubre faltante + Safety Stock de 2 días)
-        > PRIORIDAD: ALTA (Envío Consolidado Inmediato)
-        """, language="sql")
-    else:
-        st.success(f"✅ **OPERACIÓN ESTABLE:** Los niveles de inventario de {prod_sel} son óptimos para absorber la volatilidad probabilística.")
-        st.write(f"El Fill Rate (Nivel de Servicio) proyectado es del **{100 - prob_quiebre:.1f}%**. No se requieren movimientos logísticos no planeados.")
+    # Calcular riesgo dinámico para toda la tabla
+    df_cat['Stock_Seguridad'] = df_cat['Demanda_Media_Diaria'] * df_cat['Lead_Time_Dias']
+    df_cat['Status'] = np.where(df_cat['Inventario_Actual'] < df_cat['Stock_Seguridad'], '🚨 Riesgo Alto', '✅ Saludable')
+    
+    # Tabla avanzada interactiva
+    st.dataframe(
+        df_cat[['SKU_ID', 'Producto', 'Inventario_Actual', 'Stock_Seguridad', 'Status']],
+        column_config={
+            "Inventario_Actual": st.column_config.ProgressColumn("Stock Físico", format="%d", min_value=0, max_value=3000),
+            "Stock_Seguridad": st.column_config.NumberColumn("ROP (Punto Reorden)"),
+        },
+        use_container_width=True,
+        hide_index=True
+    )
+
+with tab3:
+    st.markdown("##### 📟 Consola de Comandos y Exportación")
+    st.info(f"El modelo predictivo sugiere un Fill Rate del {fill_rate:.2f}% bajo las condiciones actuales de volatilidad.")
+    
+    # Simulador de exportación de datos
+    csv = df_cat.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Descargar Reporte de Categoría (CSV)",
+        data=csv,
+        file_name=f'analisis_{cat_sel}.csv',
+        mime='text/csv',
+    )
+    
+    if prob_quiebre > 10:
+        st.error("Protocolo de emergencia logístico recomendado. Aprobar traslado entre CEDIS.")
+        if st.button("⚡ Ejecutar Orden de Reabastecimiento Automático en SAP"):
+            st.success("✅ Orden enviada exitosamente a la cola de procesamiento ERP.")
