@@ -174,18 +174,16 @@ with tab4:
     ))
     fig_wf.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=20,b=0))
     st.plotly_chart(fig_wf, use_container_width=True)
-
 # ==========================================
 # 5. HEADER Y KPIs PRINCIPALES
 # ==========================================
 # Lógica de saludo dinámico y hora de acceso (Ajustado a CST)
 tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
 hora_actual = tiempo_servidor.hour
-minuto_actual = tiempo_servidor.minute
 
-if hora_actual < 12:
+if 5 <= hora_actual < 12:
     saludo = "Buenos días"
-elif hora_actual < 19:
+elif 12 <= hora_actual < 19:
     saludo = "Buenas tardes"
 else:
     saludo = "Buenas noches"
@@ -193,27 +191,28 @@ else:
 hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
 fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
 
-# Banner de bienvenida personalizado con Logo y Hora de Acceso
+# Definimos el enlace de la imagen como variable para evitar errores de sintaxis
+url_logo = "https://www.pepsico.com.mx/images/mexicolibraries/homepage/pepsico-mexico-hero-home.jpg"
+
+# Banner Unificado
 st.markdown(f'''
-    <div style="background-color: #112240; border-left: 4px solid #00A3E0; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/PepsiCo_logo.svg/512px-PepsiCo_logo.svg.png" width="60" style="margin-right: 20px;">
+    <div style="background: linear-gradient(135deg, #002F6C 0%, #0a192f 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #112240; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        <div style="display: flex; align-items: center; gap: 25px;">
+            <div style="background-color: white; padding: 0px; border-radius: 50%; height: 85px; width: 85px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4); overflow: hidden; border: 3px solid white;">
+                <img src="{url_logo}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
             <div>
-                <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor!</h3>
-                <p style="color: #8892B0; margin: 5px 0 0 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Sr. Data Analyst) concedidos.</p>
+                <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">PepsiCo <span style="color: #00A3E0;">SCM Intelligence</span></h1>
+                <p style="color: #64FFDA; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 500;">¡{saludo}, Víctor! | Sr. Data Analyst</p>
             </div>
         </div>
-        <div style="text-align: right; background-color: rgba(0, 163, 224, 0.1); padding: 10px 15px; border-radius: 5px; border: 1px solid #00A3E0;">
-            <p style="color: #00A3E0; margin: 0; font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">Acceso al Sistema</p>
-            <p style="color: #ffffff; margin: 0; font-size: 1.1rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
-            <p style="color: #64FFDA; margin: 0; font-size: 1.2rem; font-family: 'Courier New', monospace; font-weight: bold;">{hora_formateada}</p>
+        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 25px;">
+            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Registro de Acceso</p>
+            <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 1.2rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
+            <p style="color: #00A3E0; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{hora_formateada}</p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
-
-# Título principal
-st.markdown('<h1 style="color: #ffffff; margin-bottom: 0px; margin-top: 0px;">&gt;_ Control Tower v2.0</h1>', unsafe_allow_html=True)
-st.markdown('<p style="color: #00A3E0; font-size: 1.1rem; margin-top: -10px;">Enterprise Supply Chain Intelligence Platform</p>', unsafe_allow_html=True)
 
 cols = st.columns(5)
 metrics = [
