@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
+from datetime import datetime, timedelta  # <-- ¡Agrega esta línea!
 
 # ==========================================
 # 1. CONFIGURACIÓN DEL SISTEMA Y LOGGING
