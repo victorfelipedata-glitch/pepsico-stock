@@ -211,31 +211,59 @@ with tab4:
     fig_wf.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=20,b=0))
     st.plotly_chart(fig_wf, use_container_width=True)
 
-# TAB 5: WHAT-IF SCENARIOS
-with tab5:
-    st.markdown("### Planificador de Escenarios: Envío Normal vs. Transporte Dedicado")
-    st.info("Utiliza esta herramienta para justificar el gasto extra en transporte urgente.")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown(f"#### 🚚 Escenario Actual")
-        st.metric("Lead Time", f"{lead_time_total} días")
-        st.metric("Probabilidad Stockout", f"{prob_quiebre:.1f}%")
-        st.metric("Valor en Riesgo", f"${ev_perdida:,.2f} MXN")
-        
-    with c2:
-        st.markdown(f"#### 🚀 Flete Urgente (Acelerado)")
-        # Recalculo rápido para What-If (Restando el retraso logístico)
-        lt_urgente = lead_time
-        inv_urgente = stock_actual - np.cumsum(np.clip(np.random.normal(demanda_media, demanda_media*volatilidad, (n_sim, lt_urgente)), 0, None), axis=1)[:, -1]
-        prob_urgente = np.mean(inv_urgente < 0) * 100
-        ev_urgente = (prob_urgente/100) * (np.mean(np.abs(inv_urgente[inv_urgente < 0])) if prob_urgente > 0 else 0) * costo_caja
-        
-        st.metric("Lead Time", f"{lt_urgente} días", delta="-Días de Retraso Eliminados", delta_color="inverse")
-        st.metric("Probabilidad Stockout", f"{prob_urgente:.1f}%", delta=f"{prob_urgente - prob_quiebre:.1f}%", delta_color="inverse")
-        st.metric("Valor en Riesgo", f"${ev_urgente:,.2f} MXN", delta=f"${ev_urgente - ev_perdida:,.2f} MXN", delta_color="inverse")
+# ==========================================
+# 5. HEADER Y KPIs PRINCIPALES
+# ==========================================
+# Lógica de saludo dinámico y hora de acceso (Ajustado a CST)
+tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
+hora_actual = tiempo_servidor.hour
+minuto_actual = tiempo_servidor.minute
 
-# TAB 6: LOGS Y AUDITORÍA
+if hora_actual < 12:
+    saludo = "Buenos días"
+elif hora_actual < 19:
+    saludo = "Buenas tardes"
+else:
+    saludo = "Buenas noches"
+
+hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
+fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
+
+# Banner de bienvenida personalizado con Logo y Hora de Acceso
+st.markdown(f'''
+    <div style="background-color: #112240; border-left: 4px solid #00A3E0; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/PepsiCo_logo.svg/512px-PepsiCo_logo.svg.png" width="60" style="margin-right: 20px;">
+            <div>
+                <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor!</h3>
+                <p style="color: #8892B0; margin: 5px 0 0 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Sr. Data Analyst) concedidos.</p>
+            </div>
+        </div>
+        <div style="text-align: right; background-color: rgba(0, 163, 224, 0.1); padding: 10px 15px; border-radius: 5px; border: 1px solid #00A3E0;">
+            <p style="color: #00A3E0; margin: 0; font-size: 0.8rem; text-transform: uppercase; font-weight: bold;">Acceso al Sistema</p>
+            <p style="color: #ffffff; margin: 0; font-size: 1.1rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
+            <p style="color: #64FFDA; margin: 0; font-size: 1.2rem; font-family: 'Courier New', monospace; font-weight: bold;">{hora_formateada}</p>
+        </div>
+    </div>
+''', unsafe_allow_html=True)
+
+# Título principal
+st.markdown('<h1 style="color: #ffffff; margin-bottom: 0px; margin-top: 0px;">&gt;_ Control Tower v2.0</h1>', unsafe_allow_html=True)
+st.markdown('<p style="color: #00A3E0; font-size: 1.1rem; margin-top: -10px;">Enterprise Supply Chain Intelligence Platform</p>', unsafe_allow_html=True)
+
+cols = st.columns(5)
+metrics = [
+    ("Stock Físico", f"{stock_actual:,} CX"),
+    ("Demanda Diaria", f"{demanda_media:,} CX"),
+    ("ROP Sugerido", f"{int(demanda_media * lead_time_total):,} CX"),
+    ("Riesgo (Stockout)", f"{prob_quiebre:.1f}%"),
+    ("Value at Risk (VaR)", f"${ev_perdida:,.0f}")
+]
+for col, (title, val) in zip(cols, metrics):
+    with col:
+        st.markdown(f'<div class="kpi-container"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
+
+st.write("<br>", unsafe_allow_html=True)
 # TAB 6: LOGS Y AUDITORÍA
 with tab6:
     st.markdown("### Registro Activo del Sistema (Backend)")
