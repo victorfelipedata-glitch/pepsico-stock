@@ -99,9 +99,9 @@ ev_perdida = (prob_quiebre / 100) * faltante_avg * costo_caja
 tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
 hora_actual = tiempo_servidor.hour
 
-if hora_actual < 12:
+if 5 <= hora_actual < 12:
     saludo = "Buenos días"
-elif hora_actual < 19:
+elif 12 <= hora_actual < 19:
     saludo = "Buenas tardes"
 else:
     saludo = "Buenas noches"
@@ -109,15 +109,15 @@ else:
 hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
 fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
 
-# Banner Unificado (Logo, Título, Saludo y Hora en un solo bloque limpio)
+# Banner Unificado (Logo corporativo estable y Título Institucional)
 st.markdown(f'''
     <div style="background: linear-gradient(135deg, #002F6C 0%, #0a192f 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #112240; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
         <div style="display: flex; align-items: center; gap: 25px;">
-            <div style="background-color: white; padding: 12px; border-radius: 50px; height: 80px; width: 80px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4);">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/PepsiCo_logo.svg/512px-PepsiCo_logo.svg.png" style="width: 100%;">
+            <div style="background-color: white; padding: 5px; border-radius: 50%; height: 85px; width: 85px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4); overflow: hidden;">
+                <img src="https://logo.clearbit.com/pepsico.com" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
             </div>
             <div>
-                <h1 style="color: #ffffff; margin: 0; font-size: 2.4rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">Control Tower <span style="color: #00A3E0;">v2.0</span></h1>
+                <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">PepsiCo <span style="color: #00A3E0;">SCM Intelligence</span></h1>
                 <p style="color: #64FFDA; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 500;">¡{saludo}, Víctor! | Sr. Data Analyst</p>
             </div>
         </div>
