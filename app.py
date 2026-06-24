@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta  # <-- ¡Agrega esta línea!
+from datetime import datetime, timedelta
 
 # ==========================================
 # 1. CONFIGURACIÓN DEL SISTEMA Y LOGGING
@@ -68,7 +68,7 @@ class DataLakeConnector:
         # Generación de 150 SKUs de forma dinámica
         for i in range(1, 151):
             cat = np.random.choice(categorias, p=[0.3, 0.3, 0.2, 0.1, 0.1])
-            mu = np.random.lognormal(mean=5.0, sigma=1.0) # Demanda lognormal (típico en supply chain)
+            mu = np.random.lognormal(mean=5.0, sigma=1.0) # Demanda lognormal
             datos.append(SKUProfile(
                 id_sap=f"1000{i:04d}",
                 nombre=f"SKU_Generico_{i} ({cat[:3]})",
@@ -105,22 +105,21 @@ class StochasticEngine:
         Ejecuta la simulación usando distribuciones normales truncadas para evitar demandas negativas.
         Retorna la matriz de trayectorias, la probabilidad de quiebre y el Expected Value negativo.
         """
-        # Matriz de demandas diarias: n_simulaciones x días_lead_time
-        # Usamos abs() o max(0) simulado estadísticamente para evitar demandas negativas irreales
+        # Matriz de demandas diarias vectorizada
         demandas_diarias = np.random.normal(loc=mu_demanda, scale=sigma_demanda, size=(self.n_sim, lead_time))
         demandas_diarias = np.clip(demandas_diarias, a_min=0, a_max=None) # Limpieza estocástica
         
-        # Trayectoria de inventario (Resta acumulada a lo largo del eje del tiempo)
+        # Trayectoria de inventario
         consumo_acumulado = np.cumsum(demandas_diarias, axis=1)
         matriz_inventario = stock_inicial - consumo_acumulado
         
-        # Análisis del día de llegada del camión (última columna)
+        # Análisis del día de llegada del camión
         inventario_final = matriz_inventario[:, -1]
         
         quiebres = inventario_final < 0
         prob_desabasto = np.mean(quiebres) * 100
         
-        # Faltante promedio en los escenarios donde sí hubo quiebre
+        # Faltante promedio
         faltantes = np.abs(inventario_final[quiebres])
         faltante_esperado = np.mean(faltantes) if len(faltantes) > 0 else 0
         
@@ -162,14 +161,14 @@ class ControlTowerUI:
         fig = go.Figure()
         dias = np.arange(1, lead_time + 1)
         
-        # Plot de 150 rutas grises transparentes (Muestreo para no saturar WebGL)
+        # Plot de 150 rutas grises transparentes
         muestras = matriz_inv[np.random.choice(matriz_inv.shape[0], 150, replace=False), :]
         for i in range(150):
             fig.add_trace(go.Scatter(x=dias, y=muestras[i, :], mode='lines', line=dict(color='#8892B0', width=0.5), opacity=0.1, showlegend=False))
             
         # Percentiles estadísticos
         p50 = np.percentile(matriz_inv, 50, axis=0)
-        p10 = np.percentile(matriz_inv, 10, axis=0) # Peor escenario (Alta demanda)
+        p10 = np.percentile(matriz_inv, 10, axis=0)
         
         fig.add_trace(go.Scatter(x=dias, y=p50, mode='lines+markers', name='Ruta P50 (Esperada)', line=dict(color='#64FFDA', width=3)))
         fig.add_trace(go.Scatter(x=dias, y=p10, mode='lines', name='Ruta P10 (Estrés)', line=dict(color='#FF6B6B', width=2, dash='dash')))
@@ -206,58 +205,4 @@ def main():
     
     # Extracción de parámetros del SKU seleccionado
     sku_data = df_filtered[df_filtered['nombre'] == sku_sel].iloc[0]
-    lead_time_efectivo = int(sku_data['lead_time_mu'] + retraso_log)
-    
-    # Ejecución Matemática
-    with st.spinner("Compilando tensores y ejecutando simulaciones estocásticas..."):
-        engine = StochasticEngine(n_simulations=n_vectores)
-        matriz_inv, prob, faltante_avg = engine.run_montecarlo_pipeline(
-            stock_inicial=sku_data['Stock_Actual'],
-            mu_demanda=sku_data['demanda_mu'],
-            sigma_demanda=sku_data['demanda_sigma'],
-            lead_time=lead_time_efectivo
-        )
-        
-        # Calcular impacto financiero
-        costo_falla = sku_data['costo_unitario'] * (1 + sku_data['margen_contribucion'])
-        ev_perdida = (prob / 100.0) * faltante_avg * costo_falla
-    
-    # Renderizar KPIs
-    rop_calculado = int(sku_data['demanda_mu'] * lead_time_efectivo)
-    ControlTowerUI.render_kpi_board(sku_data['Stock_Actual'], rop_calculado, prob, ev_loss=ev_perdida)
-    
-    st.write("<br>", unsafe_allow_html=True)
-    
-    # Renderizar Pestañas Visuales
-    tab1, tab2, tab3 = st.tabs(["[ 📉 VISUALIZACIÓN DE TENSORES ]", "[ 🗄️ INSPECTOR DE DATA LAKE ]", "[ 🖥️ LOGS DEL SISTEMA ]"])
-    
-    with tab1:
-        st.plotly_chart(ControlTowerUI.plot_stochastic_trajectories(matriz_inv, lead_time_efectivo), use_container_width=True)
-        
-    with tab2:
-        st.markdown("##### Vista segmentada de la tabla maestra de inventarios (Top 50)")
-        st.dataframe(df_master.head(50), use_container_width=True)
-        
-with tab3:
-        st.markdown("##### Registro de Auditoría del Backend")
-        
-        # Generar marcas de tiempo dinámicas (Simula que todo pasó hace unos segundos)
-        ahora = datetime.now()
-        t1 = (ahora - timedelta(seconds=50)).strftime("%Y-%m-%d %H:%M:%S")
-        t2 = (ahora - timedelta(seconds=49)).strftime("%Y-%m-%d %H:%M:%S")
-        t3 = (ahora - timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
-        t4 = ahora.strftime("%Y-%m-%d %H:%M:%S")
-        
-        log_output = f"""
-        {t1} [INFO] - Conexión establecida con Data Lake.
-        {t2} [INFO] - Extracción completada: 150 registros.
-        {t3} [INFO] - Iniciando compilación de tensores en memoria RAM.
-        {t3} [INFO] - Engine: Generando {n_vectores} vectores de trayectoria estocástica.
-        {t4} [WARNING] - Probabilidad de quiebre calculada estocásticamente en {prob:.1f}%.
-        {t4} [INFO] - Pipeline finalizado en 0.42 segundos. Liberando memoria caché.
-        """
-        st.code(log_output, language="bash")
-
-# Entry point estándar en Python
-if __name__ == "__main__":
-    main()
+    lead_time_efectivo = int(sku_data['lead
