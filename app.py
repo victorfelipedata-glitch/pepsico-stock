@@ -95,7 +95,25 @@ ev_perdida = (prob_quiebre / 100) * faltante_avg * costo_caja
 # ==========================================
 # 5. HEADER Y KPIs PRINCIPALES
 # ==========================================
-st.markdown('<h1 style="color: #ffffff; margin-bottom: 0px;">&gt;_ PepsiCo Control Tower v2.0</h1>', unsafe_allow_html=True)
+# Lógica de saludo dinámico según la hora local (Ajustado a CST)
+hora_actual = (datetime.utcnow() - timedelta(hours=6)).hour
+if hora_actual < 12:
+    saludo = "Buenos días"
+elif hora_actual < 19:
+    saludo = "Buenas tardes"
+else:
+    saludo = "Buenas noches"
+
+# Banner de bienvenida personalizado
+st.markdown(f'''
+    <div style="background-color: rgba(0, 163, 224, 0.1); border-left: 4px solid #00A3E0; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <h3 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif;">¡{saludo}, Víctor! Bienvenido a tu Torre de Control.</h3>
+        <p style="color: #8892B0; margin: 0; font-size: 0.95rem;">Sesión validada y activa. Privilegios de administrador (Sr. Data Analyst) concedidos. Sistemas de telemetría en línea.</p>
+    </div>
+''', unsafe_allow_html=True)
+
+# Título principal
+st.markdown('<h1 style="color: #ffffff; margin-bottom: 0px; margin-top: 10px;">&gt;_ PepsiCo Control Tower v2.0</h1>', unsafe_allow_html=True)
 st.markdown('<p style="color: #00A3E0; font-size: 1.1rem; margin-top: -10px;">Enterprise Supply Chain Intelligence Platform</p>', unsafe_allow_html=True)
 
 cols = st.columns(5)
