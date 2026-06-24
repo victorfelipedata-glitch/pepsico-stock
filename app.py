@@ -218,9 +218,13 @@ with tab5:
         st.metric("Valor en Riesgo", f"${ev_urgente:,.2f} MXN", delta=f"${ev_urgente - ev_perdida:,.2f} MXN", delta_color="inverse")
 
 # TAB 6: LOGS Y AUDITORÍA
+# TAB 6: LOGS Y AUDITORÍA
 with tab6:
     st.markdown("### Registro Activo del Sistema (Backend)")
-    t = datetime.now()
+    
+    # Ajuste de Zona Horaria: Hora UTC del servidor MENOS 6 horas (CST - México)
+    t = datetime.utcnow() - timedelta(hours=6)
+    
     logs = f"""
     {(t - timedelta(seconds=120)).strftime("%Y-%m-%d %H:%M:%S")} [AUTH] - User Login Success: Victor Martinez (Role: Sr. Analyst)
     {(t - timedelta(seconds=115)).strftime("%Y-%m-%d %H:%M:%S")} [INFO] - Conectando API Plotly GeoSpatial... OK.
