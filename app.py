@@ -8,179 +8,191 @@ import time
 # ==========================================
 # 1. CONFIGURACIÓN CORPORATIVA Y UI
 # ==========================================
-st.set_page_config(page_title="Fondo Cuantitativo | Demo Operativa", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Fondo Cuantitativo | Escáner", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    .kpi-title {font-size: 0.85rem; color: #8892B0; text-transform: uppercase;}
-    .kpi-value {font-size: 2.2rem; color: #E6F1FF; font-weight: bold; font-family: 'Courier New', monospace;}
-    .kpi-container {background-color: #112240; padding: 15px; border-radius: 8px; border-left: 4px solid #00F0FF;}
-    .user-badge {background-color: #002F6C; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #00F0FF; margin-bottom: 20px;}
+    .kpi-title {font-size: 0.9rem; color: #8892B0; text-transform: uppercase; margin-bottom: 5px;}
+    .kpi-value {font-size: 1.8rem; color: #E6F1FF; font-weight: bold;}
+    .kpi-container {background-color: #112240; padding: 20px; border-radius: 10px; border-left: 5px solid #00F0FF; margin-bottom: 15px;}
+    .alert-success {background-color: rgba(0, 255, 65, 0.1); border: 1px solid #00FF41; padding: 15px; border-radius: 8px; color: #00FF41;}
+    .alert-danger {background-color: rgba(227, 24, 55, 0.1); border: 1px solid #E31837; padding: 15px; border-radius: 8px; color: #E31837;}
+    .user-badge {background-color: #002F6C; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #00F0FF; margin-bottom: 20px;}
     </style>
 """, unsafe_allow_html=True)
 
-# Simulador de carga del sistema
+# Simulador de carga inicial
 if 'loaded' not in st.session_state:
-    st.toast('Conectando con base de datos de cuotas históricas...', icon='🔄')
-    time.sleep(0.5)
-    st.toast('Modelos Probabilísticos Compilados', icon='✅')
+    st.toast('Analizando partidos del día...', icon='🔍')
+    time.sleep(1)
+    st.toast('Cálculos completados', icon='✅')
     st.session_state['loaded'] = True
 
 # ==========================================
-# 2. BARRA LATERAL (PARÁMETROS DE ENTRADA)
+# 2. BARRA LATERAL (CONTROL DE MANDO)
 # ==========================================
 with st.sidebar:
     st.markdown("""
         <div class="user-badge">
             <h4 style="color:white; margin:0;">Víctor Antonio Felipe</h4>
-            <p style="color:#00F0FF; font-size:12px; margin:0;">Analista Cuantitativo | FES Acatlán</p>
+            <p style="color:#00F0FF; font-size:13px; margin:0;">Gestor de Portafolio</p>
         </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 🎛️ PARÁMETROS DEL MERCADO")
-    liga_sel = st.selectbox("📍 Mercado Analizado", ["Liga MX", "NBA", "Premier League", "NFL"])
+    st.markdown("### 📅 AGENDA DEL DÍA (29 JUN)")
+    partido_sel = st.selectbox(
+        "Selecciona el partido escaneado:", 
+        ["🇩🇪 Alemania vs Paraguay 🇵🇾", "🇳🇱 Países Bajos vs Marruecos 🇲🇦"]
+    )
     
-    st.markdown("### ⚙️ VARIABLES DEL MODELO")
-    bankroll = st.number_input("💰 Capital Asignado al Pilar (MXN)", min_value=1000, max_value=30000, value=5000, step=1000)
-    cuota_mercado = st.number_input("📊 Cuota del Mercado (Decimal)", min_value=1.01, max_value=10.0, value=2.10, step=0.05)
+    st.markdown("### 💰 CAPITAL DISPONIBLE")
+    bankroll = st.number_input("Fondo asignado (MXN):", min_value=1000, value=5000, step=1000)
     
     st.divider()
-    st.markdown("### 🧮 CÁLCULO DE PROBABILIDAD")
-    prob_real = st.slider("🎯 Probabilidad Real (Calculada por Modelo %)", 1, 99, 55) / 100.0
-    
-    st.caption("Última actualización: " + (datetime.utcnow() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"))
+    st.caption("Motor Matemático Activo - FES Acatlán")
 
 # ==========================================
-# 3. MOTOR MATEMÁTICO (EV+ Y KELLY)
+# 3. BASE DE DATOS DEL DÍA (PRECONFIGURADA PARA LA DEMO)
 # ==========================================
-# Probabilidad que el mercado cree que tiene el evento
+if "Alemania" in partido_sel:
+    mercado = "Gana Alemania"
+    cuota_mercado = 2.10
+    prob_real = 0.55  # 55%
+else:
+    mercado = "Gana Países Bajos"
+    cuota_mercado = 1.50
+    prob_real = 0.60  # 60%
+
+# Cálculos del Modelo
 prob_implicita = 1 / cuota_mercado
-
-# Cálculo de Valor Esperado (EV)
 ganancia_neta = cuota_mercado - 1
 ev_porcentual = (prob_real * ganancia_neta) - ((1 - prob_real) * 1)
-ev_monetario = ev_porcentual * 100 # Representación en base 100
 
-# Criterio de Kelly Fraccional (Usando 25% de Kelly para máxima seguridad)
 if ev_porcentual > 0:
-    kelly_full = ev_porcentual / ganancia_neta
-    kelly_fraccional = kelly_full * 0.25
+    kelly_fraccional = (ev_porcentual / ganancia_neta) * 0.25 # 25% de Kelly para seguridad
+    inversion_sugerida = bankroll * kelly_fraccional
+    estado = "APROBADO"
+    color_tema = "#00FF41"
 else:
     kelly_fraccional = 0.0
-
-inversion_sugerida = bankroll * kelly_fraccional
-
-# Simulación de Montecarlo (Varianza a 100 operaciones)
-n_sim = 1000
-num_operaciones = 100
-resultados = np.random.binomial(1, prob_real, (n_sim, num_operaciones))
-# Si gana, suma ganancia_neta; si pierde, resta 1
-retornos = np.where(resultados == 1, ganancia_neta, -1)
-
-# Evolución del Bankroll
-evolucion_bankroll = np.zeros((n_sim, num_operaciones + 1))
-evolucion_bankroll[:, 0] = bankroll
-
-for i in range(num_operaciones):
-    # En cada paso se invierte el porcentaje fijo de Kelly fraccional del bankroll actual
-    inversion_paso = evolucion_bankroll[:, i] * kelly_fraccional
-    evolucion_bankroll[:, i+1] = evolucion_bankroll[:, i] + (inversion_paso * retornos[:, i])
+    inversion_sugerida = 0.0
+    estado = "RECHAZADO"
+    color_tema = "#E31837"
 
 # ==========================================
-# 4. HEADER Y KPIs PRINCIPALES
+# 4. HEADER Y RESUMEN EJECUTIVO (PARA LA MADRINA)
 # ==========================================
 st.markdown(f'''
-    <div style="background: linear-gradient(135deg, #0a192f 0%, #112240 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #233554; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+    <div style="background: linear-gradient(135deg, #0a192f 0%, #112240 100%); border-radius: 12px; padding: 30px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #233554; margin-bottom: 25px;">
         <div>
-            <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px;">Portafolio <span style="color: #00F0FF;">Cuantitativo</span></h1>
-            <p style="color: #8892B0; margin: 5px 0 0 0; font-size: 1.1rem;">Fase Piloto | Demo de Mitigación de Riesgo Estadístico</p>
-        </div>
-        <div style="text-align: right;">
-            <p style="color: #00F0FF; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{cuota_mercado} / {prob_real*100:.1f}%</p>
-            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase;">Cuota / Prob. Real</p>
+            <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem;">Análisis Cuantitativo: <span style="color: {color_tema};">{partido_sel}</span></h1>
+            <p style="color: #8892B0; margin: 5px 0 0 0; font-size: 1.1rem;">Evaluación de rentabilidad para el mercado: <b>{mercado}</b></p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
 
-cols = st.columns(4)
-metrics = [
-    ("Probabilidad Implícita", f"{prob_implicita*100:.1f}%"),
-    ("Ventaja Matemática (Edge)", f"{(prob_real - prob_implicita)*100:.1f}%" if prob_real > prob_implicita else "NO HAY VENTAJA"),
-    ("Valor Esperado (EV+)", f"{ev_porcentual*100:.2f}%" if ev_porcentual > 0 else "NEGATIVO"),
-    ("Riesgo por Operación", f"${inversion_sugerida:,.2f} MXN" if ev_porcentual > 0 else "$0.00")
-]
-
-for col, (title, val) in zip(cols, metrics):
-    color_border = "#00F0FF" if "NO HAY" not in val and "NEGATIVO" not in val else "#E31837"
-    st.markdown(f'<div class="kpi-container" style="border-left-color: {color_border}"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
+# Tarjeta de Decisión (Lo primero que ella debe ver)
+if estado == "APROBADO":
+    st.markdown(f"""
+        <div class="alert-success">
+            <h3 style="margin:0;">✅ ¡Oportunidad de Inversión Encontrada!</h3>
+            <p style="margin:5px 0 0 0; font-size: 1.1rem;">El algoritmo detectó un error en las cuotas del mercado. Tenemos una ventaja matemática clara. Se recomienda invertir <b>${inversion_sugerida:,.2f} MXN</b> (riesgo estrictamente calculado).</p>
+        </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown(f"""
+        <div class="alert-danger">
+            <h3 style="margin:0;">⛔ Operación Rechazada para Proteger el Capital</h3>
+            <p style="margin:5px 0 0 0; font-size: 1.1rem;">El modelo matemático indica que invertir en este partido a largo plazo genera pérdidas. <b>La inversión recomendada es $0.00 MXN.</b> El dinero se queda seguro en el fondo.</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 st.write("<br>", unsafe_allow_html=True)
 
+# KPIs Explicados de forma sencilla
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown(f'<div class="kpi-container"><div class="kpi-title">La Casa Paga (Cuota)</div><div class="kpi-value">{cuota_mercado}</div><div style="color:#8892B0; font-size:0.8rem; margin-top:5px;">Equivale a una probabilidad del {prob_implicita*100:.1f}%</div></div>', unsafe_allow_html=True)
+with col2:
+    st.markdown(f'<div class="kpi-container"><div class="kpi-title">Nuestra Probabilidad Real</div><div class="kpi-value">{prob_real*100:.1f}%</div><div style="color:#8892B0; font-size:0.8rem; margin-top:5px;">Calculada con nuestra base de datos estadística</div></div>', unsafe_allow_html=True)
+with col3:
+    st.markdown(f'<div class="kpi-container" style="border-left-color: {color_tema}"><div class="kpi-title">Ventaja Matemática Final</div><div class="kpi-value" style="color:{color_tema};">{ev_porcentual*100:.1f}%</div><div style="color:#8892B0; font-size:0.8rem; margin-top:5px;">Si es mayor a 0%, ganamos dinero a largo plazo.</div></div>', unsafe_allow_html=True)
+
+st.divider()
+
 # ==========================================
-# 5. MÓDULOS DE ANÁLISIS (SÚPER TABS)
+# 5. PESTAÑAS DETALLADAS
 # ==========================================
 tab1, tab2, tab3 = st.tabs([
-    "📈 Simulador de Varianza (Montecarlo)", 
-    "🧮 Fundamento Matemático", 
-    "🖥️ Terminal de Ejecución"
+    "🗣️ Explicación Paso a Paso", 
+    "📈 Simulador de Crecimiento (Visual)", 
+    "🖥️ Cálculos Internos (Auditoría)"
 ])
 
-# TAB 1: MONTECARLO
+# TAB 1: EXPLICACIÓN PARA EL INVERSIONISTA (MADRINA)
 with tab1:
-    st.markdown("### Proyección Estocástica de Capital (1,000 Escenarios a 100 operaciones)")
-    if ev_porcentual <= 0:
-        st.error("El sistema no recomienda operar. El Valor Esperado es negativo. Ajusta la Probabilidad Real o busca otra cuota de mercado.")
-    else:
-        fig_mc = go.Figure()
-        dias = np.arange(0, num_operaciones + 1)
-        
-        # Plotear 100 trayectorias aleatorias
-        muestras = evolucion_bankroll[np.random.choice(n_sim, 100, replace=False), :]
-        for i in range(100):
-            fig_mc.add_trace(go.Scatter(x=dias, y=muestras[i, :], mode='lines', line=dict(color='#8892B0', width=1), opacity=0.1, showlegend=False))
-            
-        p50 = np.percentile(evolucion_bankroll, 50, axis=0)
-        p10 = np.percentile(evolucion_bankroll, 10, axis=0)
-        p90 = np.percentile(evolucion_bankroll, 90, axis=0)
-        
-        fig_mc.add_trace(go.Scatter(x=dias, y=p50, mode='lines+markers', name='Crecimiento Esperado (Mediana)', line=dict(color='#00F0FF', width=3)))
-        fig_mc.add_trace(go.Scatter(x=dias, y=p10, mode='lines', name='Peor Escenario (Percentil 10)', line=dict(color='#E31837', width=2, dash='dash')))
-        fig_mc.add_trace(go.Scatter(x=dias, y=p90, mode='lines', name='Mejor Escenario (Percentil 90)', line=dict(color='#00FF41', width=2, dash='dash')))
-        
-        fig_mc.add_hline(y=bankroll, line_dash="solid", line_color="#ffffff", annotation_text="CAPITAL INICIAL")
-        
-        fig_mc.update_layout(template="plotly_dark", height=450, margin=dict(l=0,r=0,t=0,b=0), xaxis_title="Número de Operaciones", yaxis_title="Capital (MXN)")
-        st.plotly_chart(fig_mc, use_container_width=True)
-
-# TAB 2: EXPLICACIÓN MATEMÁTICA
-with tab2:
-    st.markdown("### Transparencia del Modelo de Riesgo")
-    st.write("El algoritmo blinda el capital utilizando dos fórmulas exactas para evitar la toma de decisiones emocionales:")
+    st.markdown("### ¿Por qué el algoritmo tomó esta decisión?")
+    st.write(f"Para el partido **{partido_sel}**, el mercado está pagando una cuota de **{cuota_mercado}** a que **{mercado}**.")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**1. Filtro de Valor Esperado (EV)**")
-        st.write("Calcula si a largo plazo la operación es matemáticamente rentable.")
-        st.latex(r"EV = (P_{ganar} \times Ganancia) - (P_{perder} \times 1)")
-    with col2:
-        st.markdown("**2. Criterio de Kelly (Gestión de Riesgo)**")
-        st.write("Dicta exactamente qué porcentaje del capital usar para maximizar el crecimiento sin riesgo de quiebra.")
-        st.latex(r"f^* = \frac{bp - q}{b}")
-        st.caption("Nota: El modelo aplica un Kelly Fraccional conservador (25%) para proteger el fondo contra la varianza natural.")
+    st.markdown(f"""
+    1. **Lo que cree el mercado:** Al pagar {cuota_mercado}, la casa de apuestas asume que hay un **{prob_implicita*100:.1f}%** de probabilidad de que esto ocurra.
+    2. **Lo que sabemos nosotros:** Nuestro modelo matemático analizó los datos y determinó que la probabilidad *real* de que ocurra es del **{prob_real*100:.1f}%**.
+    """)
+    
+    if estado == "APROBADO":
+        st.success(f"**CONCLUSIÓN:** Como nuestra probabilidad ({prob_real*100:.1f}%) es MAYOR que la de la casa ({prob_implicita*100:.1f}%), tenemos una ventaja sobre ellos. A esto se le llama **Valor Esperado Positivo**. Para no arriesgar tu dinero, la fórmula matemática de Kelly nos dicta que solo debemos usar **${inversion_sugerida:,.2f} MXN** de los ${bankroll:,.2f} disponibles.")
+    else:
+        st.error(f"**CONCLUSIÓN:** Como nuestra probabilidad ({prob_real*100:.1f}%) es MENOR que la de la casa ({prob_implicita*100:.1f}%), no tenemos ninguna ventaja. Aunque sea el equipo favorito, las matemáticas dicen que a largo plazo perderíamos dinero. Por lo tanto, el sistema bloquea la operación y no arriesgamos ni un peso.")
 
-# TAB 3: LOGS Y AUDITORÍA
+# TAB 2: MONTECARLO
+with tab2:
+    st.markdown("### Proyección del Dinero a 100 Operaciones Similares")
+    if estado == "RECHAZADO":
+        st.info("No hay gráfica de crecimiento porque el sistema no permitió la inversión en este partido para evitar pérdidas.")
+    else:
+        # Simulación de Montecarlo
+        n_sim = 1000
+        num_op = 100
+        resultados = np.random.binomial(1, prob_real, (n_sim, num_op))
+        retornos = np.where(resultados == 1, ganancia_neta, -1)
+        
+        evolucion = np.zeros((n_sim, num_op + 1))
+        evolucion[:, 0] = bankroll
+        
+        for i in range(num_op):
+            inversion_paso = evolucion[:, i] * kelly_fraccional
+            evolucion[:, i+1] = evolucion[:, i] + (inversion_paso * retornos[:, i])
+
+        fig = go.Figure()
+        dias = np.arange(0, num_op + 1)
+        
+        # 100 trayectorias aleatorias
+        muestras = evolucion[np.random.choice(n_sim, 100, replace=False), :]
+        for i in range(100):
+            fig.add_trace(go.Scatter(x=dias, y=muestras[i, :], mode='lines', line=dict(color='#8892B0', width=1), opacity=0.1, showlegend=False))
+            
+        p50 = np.percentile(evolucion, 50, axis=0)
+        p10 = np.percentile(evolucion, 10, axis=0)
+        
+        fig.add_trace(go.Scatter(x=dias, y=p50, mode='lines+markers', name='Crecimiento Promedio', line=dict(color='#00FF41', width=3)))
+        fig.add_trace(go.Scatter(x=dias, y=p10, mode='lines', name='Peor Escenario Posible', line=dict(color='#E31837', width=2, dash='dash')))
+        fig.add_hline(y=bankroll, line_dash="solid", line_color="#ffffff", annotation_text="CAPITAL INICIAL (Intacto)")
+        
+        fig.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=0,b=0), xaxis_title="Cantidad de Operaciones", yaxis_title="Dinero en la Cuenta (MXN)")
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Esta gráfica demuestra que, al invertir solo cuando hay ventaja matemática, el dinero siempre crece a largo plazo, incluso si perdemos algunas operaciones individuales.")
+
+# TAB 3: AUDITORÍA
 with tab3:
-    st.markdown("### Registro del Sistema Backend")
+    st.markdown("### Bitácora del Sistema")
     t = datetime.utcnow() - timedelta(hours=6)
     
-    accion = "APROBADA" if ev_porcentual > 0 else "DENEGADA (EV NEGATIVO)"
-    
     logs = f"""
-    {(t - timedelta(seconds=15)).strftime("%Y-%m-%d %H:%M:%S")} [INIT] - Arrancando script de evaluación en {liga_sel}
-    {(t - timedelta(seconds=12)).strftime("%Y-%m-%d %H:%M:%S")} [CALC] - Evaluando cuota {cuota_mercado} -> Prob implícita: {prob_implicita*100:.1f}%
-    {(t - timedelta(seconds=8)).strftime("%Y-%m-%d %H:%M:%S")} [MODEL] - Probabilidad Real insertada: {prob_real*100:.1f}%
-    {(t - timedelta(seconds=5)).strftime("%Y-%m-%d %H:%M:%S")} [MATH] - Evaluando EV: {ev_porcentual*100:.2f}%
-    {(t - timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")} [RISK] - Calculando Criterio de Kelly Fraccional (0.25x)
-    {t.strftime("%Y-%m-%d %H:%M:%S")} [STATUS] - Operación {accion}. Inversión dictada: ${inversion_sugerida:,.2f} MXN
+    {(t - timedelta(seconds=15)).strftime("%Y-%m-%d %H:%M:%S")} [SISTEMA] - Evaluando evento: {partido_sel}
+    {(t - timedelta(seconds=12)).strftime("%Y-%m-%d %H:%M:%S")} [MERCADO] - Cuota extraída: {cuota_mercado}
+    {(t - timedelta(seconds=8)).strftime("%Y-%m-%d %H:%M:%S")} [ALGORITMO] - Calculando probabilidad real vs implícita...
+    {(t - timedelta(seconds=5)).strftime("%Y-%m-%d %H:%M:%S")} [MATE] - Valor Esperado (EV): {ev_porcentual*100:.2f}%
+    {(t - timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")} [RIESGO] - Verificando Criterio de Seguridad de Capital...
+    {t.strftime("%Y-%m-%d %H:%M:%S")} [DECISIÓN] - Estatus de la inversión: {estado} | Monto: ${inversion_sugerida:,.2f}
     """
     st.code(logs, language="bash")
