@@ -2,243 +2,185 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 from datetime import datetime, timedelta
 import time
 
 # ==========================================
 # 1. CONFIGURACIÓN CORPORATIVA Y UI
 # ==========================================
-st.set_page_config(page_title="PepsiCo | SCM Control Tower", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Fondo Cuantitativo | Demo Operativa", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
     .kpi-title {font-size: 0.85rem; color: #8892B0; text-transform: uppercase;}
     .kpi-value {font-size: 2.2rem; color: #E6F1FF; font-weight: bold; font-family: 'Courier New', monospace;}
-    .kpi-container {background-color: #112240; padding: 15px; border-radius: 8px; border-left: 4px solid #00A3E0;}
-    .user-badge {background-color: #002F6C; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #00A3E0; margin-bottom: 20px;}
+    .kpi-container {background-color: #112240; padding: 15px; border-radius: 8px; border-left: 4px solid #00F0FF;}
+    .user-badge {background-color: #002F6C; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #00F0FF; margin-bottom: 20px;}
     </style>
 """, unsafe_allow_html=True)
 
-# Simulador de carga del sistema (Notificaciones flotantes)
+# Simulador de carga del sistema
 if 'loaded' not in st.session_state:
-    st.toast('Sincronizando con SAP ERP...', icon='🔄')
+    st.toast('Conectando con base de datos de cuotas históricas...', icon='🔄')
     time.sleep(0.5)
-    st.toast('Modelos Estocásticos Compilados', icon='✅')
+    st.toast('Modelos Probabilísticos Compilados', icon='✅')
     st.session_state['loaded'] = True
 
 # ==========================================
-# 2. GENERADOR DE DATOS AVANZADO
-# ==========================================
-@st.cache_data
-def get_network_data():
-    np.random.seed(42)
-    # Coordenadas geográficas para el mapa de México
-    cedis_geo = {
-        "Vallejo (CDMX)": [19.4978, -99.1676, "Crítico", "#E31837"],
-        "Monterrey": [25.6866, -100.3161, "Estable", "#00A3E0"],
-        "Guadalajara": [20.6597, -103.3496, "Estable", "#00A3E0"],
-        "Tijuana": [32.5149, -117.0382, "Alerta", "#FFC107"],
-        "Mérida": [20.9674, -89.6236, "Estable", "#00A3E0"]
-    }
-    df_geo = pd.DataFrame.from_dict(cedis_geo, orient='index', columns=['Lat', 'Lon', 'Status', 'Color']).reset_index()
-    df_geo.rename(columns={'index': 'CEDIS'}, inplace=True)
-    return df_geo
-
-df_geo = get_network_data()
-
-# ==========================================
-# 3. BARRA LATERAL (CONTROL DE MANDO)
+# 2. BARRA LATERAL (PARÁMETROS DE ENTRADA)
 # ==========================================
 with st.sidebar:
-    # Identidad de Usuario (Gran impacto visual)
     st.markdown("""
         <div class="user-badge">
-            <h4 style="color:white; margin:0;">Víctor Martínez</h4>
-            <p style="color:#00A3E0; font-size:12px; margin:0;">Sr. Data Analyst | SCM Analytics</p>
+            <h4 style="color:white; margin:0;">Víctor Antonio Felipe</h4>
+            <p style="color:#00F0FF; font-size:12px; margin:0;">Analista Cuantitativo | FES Acatlán</p>
         </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("### 🎛️ FILTROS DE RED")
-    cedis_sel = st.selectbox("📍 Nodo Logístico", df_geo['CEDIS'].tolist())
-    cat_sel = st.selectbox("📂 Familia de Producto", ["Botanas Saladas", "Bebidas", "Galletas"])
-    sku_sel = st.selectbox("📦 SKU Analizado", ["Sabritas Original 110g", "Doritos Nacho 146g", "Cheetos 150g"] if cat_sel == "Botanas Saladas" else ["Pepsi Black 600ml", "Gatorade 1L"])
+    st.markdown("### 🎛️ PARÁMETROS DEL MERCADO")
+    liga_sel = st.selectbox("📍 Mercado Analizado", ["Liga MX", "NBA", "Premier League", "NFL"])
     
-    st.markdown("### ⚙️ VARIABLES DE ESTRÉS")
-    volatilidad = st.slider("📈 Volatilidad de Demanda (%)", 5, 50, 15) / 100.0
-    lead_time = st.number_input("🚚 Lead Time Estándar (Días)", min_value=1, max_value=10, value=3)
-    retraso_log = st.slider("⚠️ Ruido Logístico (Días Extra)", 0, 5, 0)
+    st.markdown("### ⚙️ VARIABLES DEL MODELO")
+    bankroll = st.number_input("💰 Capital Asignado al Pilar (MXN)", min_value=1000, max_value=30000, value=5000, step=1000)
+    cuota_mercado = st.number_input("📊 Cuota del Mercado (Decimal)", min_value=1.01, max_value=10.0, value=2.10, step=0.05)
     
     st.divider()
-    st.caption("Última actualización: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-# Parámetros base simulados del producto
-stock_actual = 4500
-demanda_media = 1200
-costo_caja = 45.50
-lead_time_total = lead_time + retraso_log
+    st.markdown("### 🧮 CÁLCULO DE PROBABILIDAD")
+    prob_real = st.slider("🎯 Probabilidad Real (Calculada por Modelo %)", 1, 99, 55) / 100.0
+    
+    st.caption("Última actualización: " + (datetime.utcnow() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S"))
 
 # ==========================================
-# 4. MOTOR MATEMÁTICO (MONTE CARLO)
+# 3. MOTOR MATEMÁTICO (EV+ Y KELLY)
 # ==========================================
-n_sim = 10000
-demandas = np.random.normal(loc=demanda_media, scale=demanda_media * volatilidad, size=(n_sim, lead_time_total))
-demandas = np.clip(demandas, 0, None)
-consumo = np.cumsum(demandas, axis=1)
-matriz_inv = stock_actual - consumo
-inv_final = matriz_inv[:, -1]
+# Probabilidad que el mercado cree que tiene el evento
+prob_implicita = 1 / cuota_mercado
 
-prob_quiebre = np.mean(inv_final < 0) * 100
-faltante_avg = np.mean(np.abs(inv_final[inv_final < 0])) if prob_quiebre > 0 else 0
-ev_perdida = (prob_quiebre / 100) * faltante_avg * costo_caja
+# Cálculo de Valor Esperado (EV)
+ganancia_neta = cuota_mercado - 1
+ev_porcentual = (prob_real * ganancia_neta) - ((1 - prob_real) * 1)
+ev_monetario = ev_porcentual * 100 # Representación en base 100
 
-https://www.pepsico.com.mx/images/mexicolibraries/homepage/pepsico-mexico-hero-home.jpg
-
-# ==========================================
-# 6. MÓDULOS DE ANÁLISIS (SÚPER TABS)
-# ==========================================
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "🗺️ Geo-Network", 
-    "📉 Simulador Monte Carlo", 
-    "🤖 AI Demand Forecast", 
-    "💰 P&L Financiero", 
-    "⚖️ What-If Scenarios", 
-    "🖥️ System Logs"
-])
-
-# TAB 1: MAPA GEOESPACIAL
-with tab1:
-    st.markdown("### Mapa de Salud de Red Logística (México)")
-    fig_map = px.scatter_mapbox(df_geo, lat="Lat", lon="Lon", hover_name="CEDIS", hover_data=["Status"],
-                        color="Status", color_discrete_map={"Crítico": "#E31837", "Alerta": "#FFC107", "Estable": "#00A3E0"},
-                        size_max=15, zoom=4.5, mapbox_style="carto-darkmatter")
-    fig_map.update_traces(marker=dict(size=12))
-    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=400)
-    st.plotly_chart(fig_map, use_container_width=True)
-
-# TAB 2: MONTE CARLO
-with tab2:
-    st.markdown("### Simulador de Riesgo Estocástico (10,000 Vectores)")
-    fig_mc = go.Figure()
-    dias = np.arange(1, lead_time_total + 1)
-    
-    # 100 rutas transparentes
-    muestras = matriz_inv[np.random.choice(n_sim, 100, replace=False), :]
-    for i in range(100):
-        fig_mc.add_trace(go.Scatter(x=dias, y=muestras[i, :], mode='lines', line=dict(color='#8892B0', width=1), opacity=0.1, showlegend=False))
-        
-    p50, p10 = np.percentile(matriz_inv, 50, axis=0), np.percentile(matriz_inv, 10, axis=0)
-    fig_mc.add_trace(go.Scatter(x=dias, y=p50, mode='lines+markers', name='Mediana (P50)', line=dict(color='#00A3E0', width=3)))
-    fig_mc.add_trace(go.Scatter(x=dias, y=p10, mode='lines', name='Estrés (P10)', line=dict(color='#E31837', width=2, dash='dash')))
-    fig_mc.add_hline(y=0, line_dash="solid", line_color="#E31837", annotation_text="QUIEBRE DE STOCK")
-    
-    fig_mc.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=0,b=0))
-    st.plotly_chart(fig_mc, use_container_width=True)
-
-# TAB 3: MACHINE LEARNING FORECAST
-with tab3:
-    st.markdown("### Proyección de Demanda (Modelo AI Predictivo)")
-    st.write("Simulación de proyección usando algoritmos de series de tiempo (ARIMA/Prophet) integrando estacionalidad y clima.")
-    
-    dias_hist = pd.date_range(end=datetime.now(), periods=30)
-    dias_fut = pd.date_range(start=datetime.now(), periods=15)
-    
-    hist_val = demanda_media + np.random.normal(0, demanda_media*0.1, 30)
-    fut_val = demanda_media + np.random.normal(0, demanda_media*0.15, 15)
-    
-    fig_ai = go.Figure()
-    fig_ai.add_trace(go.Scatter(x=dias_hist, y=hist_val, mode='lines', name='Histórico Real', line=dict(color='#ffffff')))
-    fig_ai.add_trace(go.Scatter(x=dias_fut, y=fut_val, mode='lines+markers', name='AI Forecast', line=dict(color='#00F0FF', dash='dot')))
-    
-    # Intervalo de confianza
-    fig_ai.add_trace(go.Scatter(x=dias_fut.tolist() + dias_fut[::-1].tolist(), 
-                                y=(fut_val*1.2).tolist() + (fut_val*0.8)[::-1].tolist(), 
-                                fill='toself', fillcolor='rgba(0, 240, 255, 0.2)', line=dict(color='rgba(255,255,255,0)'), name='Intervalo de Confianza 95%'))
-    
-    fig_ai.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=0,b=0))
-    st.plotly_chart(fig_ai, use_container_width=True)
-
-# TAB 4: IMPACTO FINANCIERO (WATERFALL)
-with tab4:
-    st.markdown("### Desglose de Costos Logísticos (Cascada P&L)")
-    costo_mantener = stock_actual * 0.50 # Asumiendo 50 centavos por caja por guardar
-    costo_transporte = 15000 # Costo fijo de flete
-    
-    fig_wf = go.Figure(go.Waterfall(
-        orientation="v", measure=["relative", "relative", "relative", "total"],
-        x=["Costo Almacenaje", "Flete Estándar", "VaR (Riesgo Quiebre)", "Costo Total Proyectado"],
-        textposition="outside",
-        text=[f"${costo_mantener:,.0f}", f"${costo_transporte:,.0f}", f"${ev_perdida:,.0f}", f"${costo_mantener+costo_transporte+ev_perdida:,.0f}"],
-        y=[costo_mantener, costo_transporte, ev_perdida, costo_mantener+costo_transporte+ev_perdida],
-        connector={"line":{"color":"rgb(63, 63, 63)"}}
-    ))
-    fig_wf.update_layout(template="plotly_dark", height=400, margin=dict(l=0,r=0,t=20,b=0))
-    st.plotly_chart(fig_wf, use_container_width=True)
-# ==========================================
-# 5. HEADER Y KPIs PRINCIPALES
-# ==========================================
-# Lógica de saludo dinámico y hora de acceso (Ajustado a CST)
-tiempo_servidor = datetime.utcnow() - timedelta(hours=6)
-hora_actual = tiempo_servidor.hour
-
-if 5 <= hora_actual < 12:
-    saludo = "Buenos días"
-elif 12 <= hora_actual < 19:
-    saludo = "Buenas tardes"
+# Criterio de Kelly Fraccional (Usando 25% de Kelly para máxima seguridad)
+if ev_porcentual > 0:
+    kelly_full = ev_porcentual / ganancia_neta
+    kelly_fraccional = kelly_full * 0.25
 else:
-    saludo = "Buenas noches"
+    kelly_fraccional = 0.0
 
-hora_formateada = tiempo_servidor.strftime("%H:%M:%S CST")
-fecha_formateada = tiempo_servidor.strftime("%d/%m/%Y")
+inversion_sugerida = bankroll * kelly_fraccional
 
-# Definimos el enlace de la imagen como variable para evitar errores de sintaxis
-url_logo = "https://www.pepsico.com.mx/images/mexicolibraries/homepage/pepsico-mexico-hero-home.jpg"
+# Simulación de Montecarlo (Varianza a 100 operaciones)
+n_sim = 1000
+num_operaciones = 100
+resultados = np.random.binomial(1, prob_real, (n_sim, num_operaciones))
+# Si gana, suma ganancia_neta; si pierde, resta 1
+retornos = np.where(resultados == 1, ganancia_neta, -1)
 
-# Banner Unificado
+# Evolución del Bankroll
+evolucion_bankroll = np.zeros((n_sim, num_operaciones + 1))
+evolucion_bankroll[:, 0] = bankroll
+
+for i in range(num_operaciones):
+    # En cada paso se invierte el porcentaje fijo de Kelly fraccional del bankroll actual
+    inversion_paso = evolucion_bankroll[:, i] * kelly_fraccional
+    evolucion_bankroll[:, i+1] = evolucion_bankroll[:, i] + (inversion_paso * retornos[:, i])
+
+# ==========================================
+# 4. HEADER Y KPIs PRINCIPALES
+# ==========================================
 st.markdown(f'''
-    <div style="background: linear-gradient(135deg, #002F6C 0%, #0a192f 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #112240; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-        <div style="display: flex; align-items: center; gap: 25px;">
-            <div style="background-color: white; padding: 0px; border-radius: 50%; height: 85px; width: 85px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(0, 163, 224, 0.4); overflow: hidden; border: 3px solid white;">
-                <img src="{url_logo}" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            <div>
-                <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px; line-height: 1.1;">PepsiCo <span style="color: #00A3E0;">SCM Intelligence</span></h1>
-                <p style="color: #64FFDA; margin: 5px 0 0 0; font-size: 1.1rem; font-weight: 500;">¡{saludo}, Víctor! | Sr. Data Analyst</p>
-            </div>
+    <div style="background: linear-gradient(135deg, #0a192f 0%, #112240 100%); border-radius: 12px; padding: 25px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #233554; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+        <div>
+            <h1 style="color: #ffffff; margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.5px;">Portafolio <span style="color: #00F0FF;">Cuantitativo</span></h1>
+            <p style="color: #8892B0; margin: 5px 0 0 0; font-size: 1.1rem;">Fase Piloto | Demo de Mitigación de Riesgo Estadístico</p>
         </div>
-        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 25px;">
-            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Registro de Acceso</p>
-            <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 1.2rem; font-family: 'Courier New', monospace;">{fecha_formateada}</p>
-            <p style="color: #00A3E0; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{hora_formateada}</p>
+        <div style="text-align: right;">
+            <p style="color: #00F0FF; margin: 0; font-size: 1.4rem; font-weight: bold; font-family: 'Courier New', monospace;">{cuota_mercado} / {prob_real*100:.1f}%</p>
+            <p style="color: #8892B0; margin: 0; font-size: 0.85rem; text-transform: uppercase;">Cuota / Prob. Real</p>
         </div>
     </div>
 ''', unsafe_allow_html=True)
 
-cols = st.columns(5)
+cols = st.columns(4)
 metrics = [
-    ("Stock Físico", f"{stock_actual:,} CX"),
-    ("Demanda Diaria", f"{demanda_media:,} CX"),
-    ("ROP Sugerido", f"{int(demanda_media * lead_time_total):,} CX"),
-    ("Riesgo (Stockout)", f"{prob_quiebre:.1f}%"),
-    ("Value at Risk (VaR)", f"${ev_perdida:,.0f}")
+    ("Probabilidad Implícita", f"{prob_implicita*100:.1f}%"),
+    ("Ventaja Matemática (Edge)", f"{(prob_real - prob_implicita)*100:.1f}%" if prob_real > prob_implicita else "NO HAY VENTAJA"),
+    ("Valor Esperado (EV+)", f"{ev_porcentual*100:.2f}%" if ev_porcentual > 0 else "NEGATIVO"),
+    ("Riesgo por Operación", f"${inversion_sugerida:,.2f} MXN" if ev_porcentual > 0 else "$0.00")
 ]
+
 for col, (title, val) in zip(cols, metrics):
-    with col:
-        st.markdown(f'<div class="kpi-container"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
+    color_border = "#00F0FF" if "NO HAY" not in val y "NEGATIVO" not in val else "#E31837"
+    st.markdown(f'<div class="kpi-container" style="border-left-color: {color_border}"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
 
 st.write("<br>", unsafe_allow_html=True)
-# TAB 6: LOGS Y AUDITORÍA
-with tab6:
-    st.markdown("### Registro Activo del Sistema (Backend)")
+
+# ==========================================
+# 5. MÓDULOS DE ANÁLISIS (SÚPER TABS)
+# ==========================================
+tab1, tab2, tab3 = st.tabs([
+    "📈 Simulador de Varianza (Montecarlo)", 
+    "🧮 Fundamento Matemático", 
+    "🖥️ Terminal de Ejecución"
+])
+
+# TAB 1: MONTECARLO
+with tab1:
+    st.markdown("### Proyección Estocástica de Capital (1,000 Escenarios a 100 operaciones)")
+    if ev_porcentual <= 0:
+        st.error("El sistema no recomienda operar. El Valor Esperado es negativo. Ajusta la Probabilidad Real o busca otra cuota de mercado.")
+    else:
+        fig_mc = go.Figure()
+        dias = np.arange(0, num_operaciones + 1)
+        
+        # Plotear 100 trayectorias aleatorias
+        muestras = evolucion_bankroll[np.random.choice(n_sim, 100, replace=False), :]
+        for i in range(100):
+            fig_mc.add_trace(go.Scatter(x=dias, y=muestras[i, :], mode='lines', line=dict(color='#8892B0', width=1), opacity=0.1, showlegend=False))
+            
+        p50 = np.percentile(evolucion_bankroll, 50, axis=0)
+        p10 = np.percentile(evolucion_bankroll, 10, axis=0)
+        p90 = np.percentile(evolucion_bankroll, 90, axis=0)
+        
+        fig_mc.add_trace(go.Scatter(x=dias, y=p50, mode='lines+markers', name='Crecimiento Esperado (Mediana)', line=dict(color='#00F0FF', width=3)))
+        fig_mc.add_trace(go.Scatter(x=dias, y=p10, mode='lines', name='Peor Escenario (Percentil 10)', line=dict(color='#E31837', width=2, dash='dash')))
+        fig_mc.add_trace(go.Scatter(x=dias, y=p90, mode='lines', name='Mejor Escenario (Percentil 90)', line=dict(color='#00FF41', width=2, dash='dash')))
+        
+        fig_mc.add_hline(y=bankroll, line_dash="solid", line_color="#ffffff", annotation_text="CAPITAL INICIAL")
+        
+        fig_mc.update_layout(template="plotly_dark", height=450, margin=dict(l=0,r=0,t=0,b=0), xaxis_title="Número de Operaciones", yaxis_title="Capital (MXN)")
+        st.plotly_chart(fig_mc, use_container_width=True)
+
+# TAB 2: EXPLICACIÓN MATEMÁTICA
+with tab2:
+    st.markdown("### Transparencia del Modelo de Riesgo")
+    st.write("El algoritmo blinda el capital utilizando dos fórmulas exactas para evitar la toma de decisiones emocionales:")
     
-    # Ajuste de Zona Horaria: Hora UTC del servidor MENOS 6 horas (CST - México)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**1. Filtro de Valor Esperado (EV)**")
+        st.write("Calcula si a largo plazo la operación es matemáticamente rentable.")
+        st.latex(r"EV = (P_{ganar} \times Ganancia) - (P_{perder} \times 1)")
+    with col2:
+        st.markdown("**2. Criterio de Kelly (Gestión de Riesgo)**")
+        st.write("Dicta exactamente qué porcentaje del capital usar para maximizar el crecimiento sin riesgo de quiebra.")
+        st.latex(r"f^* = \frac{bp - q}{b}")
+        st.caption("Nota: El modelo aplica un Kelly Fraccional conservador (25%) para proteger el fondo contra la varianza natural.")
+
+# TAB 3: LOGS Y AUDITORÍA
+with tab3:
+    st.markdown("### Registro del Sistema Backend")
     t = datetime.utcnow() - timedelta(hours=6)
     
+    accion = "APROBADA" if ev_porcentual > 0 else "DENEGADA (EV NEGATIVO)"
+    
     logs = f"""
-    {(t - timedelta(seconds=120)).strftime("%Y-%m-%d %H:%M:%S")} [AUTH] - User Login Success: Victor Martinez (Role: Sr. Analyst)
-    {(t - timedelta(seconds=115)).strftime("%Y-%m-%d %H:%M:%S")} [INFO] - Conectando API Plotly GeoSpatial... OK.
-    {(t - timedelta(seconds=45)).strftime("%Y-%m-%d %H:%M:%S")} [INFO] - Extrayendo telemetría de CEDIS (Vallejo, MTY, GDL, TIJ, MER)...
-    {(t - timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")} [ML_ENGINE] - Corriendo {n_sim} vectores estocásticos.
-    {t.strftime("%Y-%m-%d %H:%M:%S")} [WARNING] - VaR calculado en ${ev_perdida:,.2f} MXN para el SKU actual.
+    {(t - timedelta(seconds=15)).strftime("%Y-%m-%d %H:%M:%S")} [INIT] - Arrancando script de evaluación en {liga_sel}
+    {(t - timedelta(seconds=12)).strftime("%Y-%m-%d %H:%M:%S")} [CALC] - Evaluando cuota {cuota_mercado} -> Prob implícita: {prob_implicita*100:.1f}%
+    {(t - timedelta(seconds=8)).strftime("%Y-%m-%d %H:%M:%S")} [MODEL] - Probabilidad Real insertada: {prob_real*100:.1f}%
+    {(t - timedelta(seconds=5)).strftime("%Y-%m-%d %H:%M:%S")} [MATH] - Evaluando EV: {ev_porcentual*100:.2f}%
+    {(t - timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")} [RISK] - Calculando Criterio de Kelly Fraccional (0.25x)
+    {t.strftime("%Y-%m-%d %H:%M:%S")} [STATUS] - Operación {accion}. Inversión dictada: ${inversion_sugerida:,.2f} MXN
     """
     st.code(logs, language="bash")
