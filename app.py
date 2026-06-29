@@ -111,7 +111,7 @@ metrics = [
 ]
 
 for col, (title, val) in zip(cols, metrics):
-    color_border = "#00F0FF" if "NO HAY" not in val y "NEGATIVO" not in val else "#E31837"
+    color_border = "#00F0FF" if "NO HAY" not in val and "NEGATIVO" not in val else "#E31837"
     st.markdown(f'<div class="kpi-container" style="border-left-color: {color_border}"><div class="kpi-title">{title}</div><div class="kpi-value">{val}</div></div>', unsafe_allow_html=True)
 
 st.write("<br>", unsafe_allow_html=True)
